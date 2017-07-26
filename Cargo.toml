@@ -1,0 +1,9 @@
+[package]
+name = "orchard"
+version = "0.1.0"
+authors = ["Colin Perkins <csp@csperkins.org>"]
+
+[dependencies]
+byteorder = "0.5"
+mio       = "0.6.9"
+
