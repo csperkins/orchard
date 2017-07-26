@@ -24,15 +24,40 @@
 
 extern crate byteorder;
 extern crate mio;
+extern crate getopts;
 
+use std::env::args;
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use std::time::Duration;
 use mio::*;
 use mio::net::UdpSocket;
+use getopts::Options;
 
 const SOCKET_TOKEN : mio::Token = mio::Token(0);
 
 fn main() {
+    let mut passive = false;
+
+    // Parse command line options
+
+    let mut opts = Options::new();
+    opts.optflag("p", "passive", "only listen, don't initiate requests");
+
+    let argv : Vec<String> = args().collect();
+    match opts.parse(&argv[1..]) {
+        Ok(matches) => {
+            if matches.opt_present("p") {
+                println!("passive mode");
+                passive = true;
+            }
+        }
+        Err(_) => {
+            panic!("cannot parse options");
+        }
+    }
+
+    // Event loop
+
     let port = 5004;
     let addr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
     let socket = UdpSocket::bind(&SocketAddr::new(addr, port)).unwrap();
