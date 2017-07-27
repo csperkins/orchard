@@ -35,6 +35,13 @@ use getopts::Options;
 
 const SOCKET_TOKEN : mio::Token = mio::Token(0);
 
+fn send_probe(socket: &UdpSocket) {
+    let buffer = [0; 50];
+    let dest   = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(130, 209, 247, 84)), 5004);
+
+    socket.send_to(&buffer, &dest);
+}
+
 fn main() {
     let mut passive = false;
 
@@ -68,11 +75,14 @@ fn main() {
     poll.register(&socket, SOCKET_TOKEN, Ready::readable(), PollOpt::edge()).unwrap();
 
     loop {
-        let timeout = Duration::new(1, 0);
+        let timeout = Duration::new(10, 0);
 
         match poll.poll(&mut events, Some(timeout)) {
             Ok(0) => {
                 println!("timeout");
+                if !passive {
+                    send_probe(&socket);
+                }
             }
             Ok(n) => {
                 println!("got {} events", n);
