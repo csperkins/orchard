@@ -90,6 +90,9 @@ fn main() {
                     match event.token() {
                         SOCKET_TOKEN => {
                             println!("got socket event");
+														let mut buffer = [0; 1500];
+														let res = socket.recv_from(&mut buffer);
+														println!("{:?}", res);
                         }
                         _ => {
                             panic!("event with unexpected token");
