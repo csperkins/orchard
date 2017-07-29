@@ -22,6 +22,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+extern crate bytes;
 extern crate byteorder;
 extern crate mio;
 extern crate getopts;
@@ -32,14 +33,71 @@ use std::time::Duration;
 use mio::*;
 use mio::net::UdpSocket;
 use getopts::Options;
+use bytes::{Bytes, BytesMut, Buf, BufMut, BigEndian};
 
 const SOCKET_TOKEN : mio::Token = mio::Token(0);
 
-fn send_probe(socket: &UdpSocket) {
-    let buffer = [0; 50];
-    let dest   = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(130, 209, 247, 84)), 5004);
+enum OrchardMessage {
+    NatProbe {
+        send_addr : IpAddr,
+        send_port : u16,
+    },
+    NatReply {
+        send_addr : IpAddr,
+        send_port : u16,
+        recv_addr : IpAddr,
+        recv_port : u16,
+    }
+}
 
-    socket.send_to(&buffer, &dest);
+impl OrchardMessage {
+    fn encode(&self) -> Vec<u8> {
+        let mut buf = BytesMut::with_capacity(1024);
+        buf.put(&b"ORCHARD"[..]);
+        buf.put_u8(0);
+
+        match *self {
+            OrchardMessage::NatProbe{send_addr, send_port} => {
+                match send_addr {
+                    IpAddr::V4(addr) => {
+                        buf.put(&b"NP"[..]);                 // "NP" = NAT Probe
+                        buf.put_u16::<BigEndian>(4+4);       // Length
+                        buf.put_u16::<BigEndian>(0);         // Padding
+                        buf.put_u16::<BigEndian>(send_port); // Port
+                        buf.put_slice(&addr.octets());       // IPv4 address
+                     }
+                    IpAddr::V6(addr) => {
+                        buf.put(&b"NP"[..]);                 // "NP" = NAT Probe
+                        buf.put_u16::<BigEndian>(4+16);      // Length
+                        buf.put_u16::<BigEndian>(0);         // Padding
+                        buf.put_u16::<BigEndian>(send_port); // Port
+                        buf.put_slice(&addr.octets());       // IPv6 address
+                    }
+                }
+            }
+            OrchardMessage::NatReply{send_addr, send_port, recv_addr, recv_port} => {
+                unimplemented!();
+            }
+        }
+
+        println!("{:?}", buf);
+        buf.to_vec()
+    }
+}
+
+fn send_probe(socket: &UdpSocket) {
+    let dest_addr = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 2));
+    let dest_port = 5004;
+    let dest = SocketAddr::new(dest_addr, dest_port);
+
+    let local_addr = socket.local_addr().unwrap();
+
+    let msg = OrchardMessage::NatProbe { 
+        send_addr : local_addr.ip(),
+        send_port : local_addr.port()
+    };
+
+    socket.send_to(&msg.encode(), &dest);
 }
 
 fn main() {
