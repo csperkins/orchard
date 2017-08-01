@@ -25,6 +25,8 @@
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use bytes::{Bytes, BytesMut, Buf, BufMut, BigEndian};
 
+const ORCHARD_VERSION : u8 = 0;
+
 pub enum OrchardMessage {
     NatProbe {
         send_addr : IpAddr,
@@ -42,7 +44,7 @@ impl OrchardMessage {
     pub fn encode(&self) -> Vec<u8> {
         let mut buf = BytesMut::with_capacity(1024);
         buf.put(&b"ORCHARD"[..]);
-        buf.put_u8(0);
+        buf.put_u8(ORCHARD_VERSION);
 
         match *self {
             OrchardMessage::NatProbe{send_addr, send_port} => {
