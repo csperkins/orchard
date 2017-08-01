@@ -43,29 +43,70 @@ pub enum OrchardMessage {
 impl OrchardMessage {
     pub fn encode(&self) -> Vec<u8> {
         let mut buf = BytesMut::with_capacity(1024);
+        //  0                     1                 2                   3
+        //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+        // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        // |      "O"      |      "R"      |      "C"      |     "H"       |
+        // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        // |      "A"      |      "R"      |      "D"      |  version = 0  |
+        // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         buf.put(&b"ORCHARD"[..]);
         buf.put_u8(ORCHARD_VERSION);
 
         match *self {
             OrchardMessage::NatProbe{send_addr, send_port} => {
+                //  0                     1                 2                   3
+                //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |      "N"      |      "P"      |        length = 8 or 20       |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |           send_port           |    address format = 4 or 6    |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |                                                               |
+                // |                           send_addr                           |
+                // |                       (32 or 128 bits)                        |
+                // |                                                               |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 match send_addr {
                     IpAddr::V4(addr) => {
                         buf.put(&b"NP"[..]);                 // "NP" = NAT Probe
                         buf.put_u16::<BigEndian>(4+4);       // Length
-                        buf.put_u16::<BigEndian>(0);         // Padding
                         buf.put_u16::<BigEndian>(send_port); // Port
+                        buf.put_u16::<BigEndian>(4);         // IPv4
                         buf.put_slice(&addr.octets());       // IPv4 address
                      }
                     IpAddr::V6(addr) => {
                         buf.put(&b"NP"[..]);                 // "NP" = NAT Probe
                         buf.put_u16::<BigEndian>(4+16);      // Length
-                        buf.put_u16::<BigEndian>(0);         // Padding
                         buf.put_u16::<BigEndian>(send_port); // Port
+                        buf.put_u16::<BigEndian>(6);         // IPv6
                         buf.put_slice(&addr.octets());       // IPv6 address
                     }
                 }
             }
             OrchardMessage::NatReply{send_addr, send_port, recv_addr, recv_port} => {
+                // It's possible that the send_addr and recv_addr are different protocols
+                // (e.g., if the packet has passed through an IPv6 to IPv4 NAT).
+                // 
+                //  0                     1                 2                   3
+                //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |      "N"      |      "R"      |    length = 16, 28, or 40     |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |           send_port           |    address format = 4 or 6    |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |                                                               |
+                // |                           send_addr                           |
+                // |                       (32 or 128 bits)                        |
+                // |                                                               |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |           recv_port           |    address format = 4 or 6    |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |                                                               |
+                // |                           recv_addr                           |
+                // |                       (32 or 128 bits)                        |
+                // |                                                               |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 unimplemented!();
             }
         }
