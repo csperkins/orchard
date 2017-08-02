@@ -25,6 +25,44 @@
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use bytes::{Bytes, BytesMut, Buf, BufMut, BigEndian};
 
+// ================================================================================================
+// IpAddr helper extensions:
+
+trait IpAddrExt {
+    fn len(&self) -> u16;
+    fn version(&self) -> u16;
+    fn octets(&self) -> Vec<u8>;
+}
+
+impl IpAddrExt for IpAddr {
+    fn len(&self) -> u16 {
+        match *self {
+            IpAddr::V4(_) => 4,
+            IpAddr::V6(_) => 16
+        }
+    }
+
+    fn version(&self) -> u16 {
+        match *self {
+            IpAddr::V4(_) => 4,
+            IpAddr::V6(_) => 6
+        }
+    }
+
+    fn octets(&self) -> Vec<u8> {
+        let mut octets = Vec::<u8>::new();
+
+        match *self {
+            IpAddr::V4(addr) => octets.extend_from_slice(&addr.octets()),
+            IpAddr::V6(addr) => octets.extend_from_slice(&addr.octets()),
+        }
+        octets
+    }
+}
+
+// ================================================================================================
+// Orchard message types and functions:
+
 const ORCHARD_VERSION : u8 = 0;
 
 pub enum OrchardMessage {
@@ -67,22 +105,11 @@ impl OrchardMessage {
                 // |                       (32 or 128 bits)                        |
                 // |                                                               |
                 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                match send_addr {
-                    IpAddr::V4(addr) => {
-                        buf.put(&b"NP"[..]);                 // "NP" = NAT Probe
-                        buf.put_u16::<BigEndian>(4+4);       // Length
-                        buf.put_u16::<BigEndian>(send_port); // Port
-                        buf.put_u16::<BigEndian>(4);         // IPv4
-                        buf.put_slice(&addr.octets());       // IPv4 address
-                     }
-                    IpAddr::V6(addr) => {
-                        buf.put(&b"NP"[..]);                 // "NP" = NAT Probe
-                        buf.put_u16::<BigEndian>(4+16);      // Length
-                        buf.put_u16::<BigEndian>(send_port); // Port
-                        buf.put_u16::<BigEndian>(6);         // IPv6
-                        buf.put_slice(&addr.octets());       // IPv6 address
-                    }
-                }
+                buf.put(&b"NP"[..]);
+                buf.put_u16::<BigEndian>(send_addr.len() + 4);
+                buf.put_u16::<BigEndian>(send_port);
+                buf.put_u16::<BigEndian>(send_addr.version());
+                buf.put_slice(&send_addr.octets());
             }
             OrchardMessage::NatReply{send_addr, send_port, recv_addr, recv_port} => {
                 // It's possible that the send_addr and recv_addr are different protocols
@@ -107,7 +134,14 @@ impl OrchardMessage {
                 // |                       (32 or 128 bits)                        |
                 // |                                                               |
                 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                unimplemented!();
+                buf.put(&b"N^"[..]);
+                buf.put_u16::<BigEndian>(send_addr.len() + recv_addr.len() + 8);
+                buf.put_u16::<BigEndian>(send_port);
+                buf.put_u16::<BigEndian>(send_addr.version());
+                buf.put_slice(&send_addr.octets());
+                buf.put_u16::<BigEndian>(recv_port);
+                buf.put_u16::<BigEndian>(recv_addr.version());
+                buf.put_slice(&recv_addr.octets());
             }
         }
 
