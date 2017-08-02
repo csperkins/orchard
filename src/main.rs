@@ -41,8 +41,8 @@ use message::OrchardMessage;
 const SOCKET_TOKEN : mio::Token = mio::Token(0);
 
 fn send_probe(socket: &UdpSocket) {
-    let dest_addr = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 2));
-    let dest_port = 5004;
+    let dest_addr = IpAddr::V4(Ipv4Addr::new(130, 209, 247, 84));
+    let dest_port = 5005;
     let dest = SocketAddr::new(dest_addr, dest_port);
 
     let local_addr = socket.local_addr().unwrap();
@@ -78,7 +78,7 @@ fn main() {
 
     // Event loop
 
-    let port = 5004;
+    let port = 5005;
     let addr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
     let socket = UdpSocket::bind(&SocketAddr::new(addr, port)).unwrap();
 
