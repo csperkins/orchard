@@ -22,8 +22,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-use std::net::{SocketAddr, IpAddr, Ipv4Addr};
-use bytes::{Bytes, BytesMut, Buf, BufMut, BigEndian};
+use std::net::IpAddr;
+use bytes::{Bytes, BytesMut, BufMut, BigEndian};
 
 // ================================================================================================
 // IpAddr helper extensions:
@@ -79,7 +79,7 @@ pub enum OrchardMessage {
 }
 
 impl OrchardMessage {
-    pub fn encode(&self) -> Vec<u8> {
+    pub fn encode(&self) -> Bytes {
         let mut buf = BytesMut::with_capacity(1024);
         //  0                     1                 2                   3
         //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -146,7 +146,7 @@ impl OrchardMessage {
         }
 
         println!("{:?}", buf);
-        buf.to_vec()
+        buf.freeze()
     }
 }
 
