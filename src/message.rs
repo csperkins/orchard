@@ -134,7 +134,7 @@ impl OrchardMessage {
                 // |                       (32 or 128 bits)                        |
                 // |                                                               |
                 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                buf.put(&b"N^"[..]);
+                buf.put(&b"NR"[..]);
                 buf.put_u16::<BigEndian>(send_addr.len() + recv_addr.len() + 8);
                 buf.put_u16::<BigEndian>(send_port);
                 buf.put_u16::<BigEndian>(send_addr.version());
