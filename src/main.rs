@@ -26,6 +26,7 @@ extern crate bytes;
 extern crate byteorder;
 extern crate mio;
 extern crate getopts;
+extern crate syslog;
 
 mod message;
 
@@ -35,6 +36,7 @@ use std::time::Duration;
 use mio::*;
 use mio::net::UdpSocket;
 use getopts::Options;
+use syslog::{Facility,Severity};
 
 use message::OrchardMessage;
 
@@ -76,6 +78,11 @@ fn main() {
         }
     }
 
+    let syslog = syslog::unix(Facility::LOG_USER).unwrap();
+
+    syslog.send(Severity::LOG_NOTICE, "orchard: starting");
+
+
     // Event loop
 
     let port = 5005;
@@ -92,7 +99,7 @@ fn main() {
 
         match poll.poll(&mut events, Some(timeout)) {
             Ok(0) => {
-                println!("timeout");
+                syslog.send(Severity::LOG_NOTICE, "orchard: timeout");
                 if !passive {
                     send_probe(&socket);
                 }
@@ -102,13 +109,14 @@ fn main() {
                 for event in &events {
                     match event.token() {
                         SOCKET_TOKEN => {
-                            println!("got socket event");
+                            syslog.send(Severity::LOG_NOTICE, "orchard: got socket event");
                             let mut buffer = [0; 1500];
                             let res = socket.recv_from(&mut buffer);
                             println!("{:?}", res);
+                            syslog.send(Severity::LOG_NOTICE, &format!("orchard: {:?}", res));
                         }
                         _ => {
-                            panic!("event with unexpected token");
+                            syslog.send(Severity::LOG_NOTICE, "orchard: unexpected event token");
                         }
                     }
                 }
