@@ -24,8 +24,8 @@
 
 extern crate bytes;
 extern crate byteorder;
-extern crate mio;
 extern crate getopts;
+extern crate mio;
 extern crate syslog;
 
 mod message;
