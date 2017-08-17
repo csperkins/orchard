@@ -24,12 +24,14 @@
 
 extern crate bytes;
 extern crate byteorder;
+extern crate config;
 extern crate getopts;
 extern crate mio;
 extern crate syslog;
 
 mod message;
 
+use std::collections::HashMap;
 use std::env::args;
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use std::time::Duration;
@@ -37,6 +39,7 @@ use mio::*;
 use mio::net::UdpSocket;
 use getopts::Options;
 use syslog::{Facility,Severity};
+use config::Config;
 
 use message::OrchardMessage;
 
@@ -79,9 +82,12 @@ fn main() {
     }
 
     let syslog = syslog::unix(Facility::LOG_USER).unwrap();
-
     syslog.send(Severity::LOG_NOTICE, "orchard: starting");
 
+    let mut config = Config::new();
+    config.merge(config::File::with_name("orchard.toml")).unwrap();
+    println!("{:?}", config.deserialize::<HashMap<String, String>>().unwrap());
+    println!("{:?}", config.get_str("uuid"));
 
     // Event loop
 

@@ -6,6 +6,7 @@ authors = ["Colin Perkins <csp@csperkins.org>"]
 [dependencies]
 bytes     = "0.4"
 byteorder = "0.5"
+config    = "0.6"
 getopts   = "0.2"
 mio       = "0.6.9"
 syslog    = "3.2.0"
